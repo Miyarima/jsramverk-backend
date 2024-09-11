@@ -1,10 +1,10 @@
 import express from "express";
-import bodyParser from "body-parser";
+// import bodyParser from "body-parser";
 import cors from "cors";
 import morgan from "morgan";
 
 const app = express();
-const port = 1337;
+const port = process.env.PORT || 1337;
 
 import index from "./routes/index.mjs";
 import greetings from "./routes/hello.mjs";
