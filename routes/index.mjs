@@ -24,11 +24,6 @@ let db;
 //     html: body.html,
 // };
 
-// const result = await db.collection.updateOne(
-//     filter,
-//     updateDocument,
-// );
-
 router.get("/user", async (req, res) => {
   try {
     const { collection } = await database.getDb();
@@ -88,12 +83,53 @@ router.post("/user", async (req, res) => {
   }
 });
 
-router.put("/user", (req, res) => {
-  res.status(204).send();
+router.put("/user", async (req, res) => {
+  try {
+    const { collection } = await database.getDb();
+
+    const result = await collection.updateOne(
+      { name: "John Doe" },
+      { $set: { age: 45 } }
+    );
+
+    res.status(204).send(result);
+  } catch (e) {
+    res.status(500).json({
+      errors: {
+        status: 500,
+        source: "/",
+        title: "Database error",
+        detail: e.message,
+      },
+    });
+  } finally {
+    if (db && db.client) {
+      await db.client.close();
+    }
+  }
 });
 
-router.delete("/user", (req, res) => {
-  res.status(204).send();
+router.delete("/user", async (req, res) => {
+  try {
+    const { collection } = await database.getDb();
+
+    const result = await collection.deleteOne({ name: "John Doe" });
+
+    res.status(204).send(result);
+  } catch (e) {
+    res.status(500).json({
+      errors: {
+        status: 500,
+        source: "/",
+        title: "Database error",
+        detail: e.message,
+      },
+    });
+  } finally {
+    if (db && db.client) {
+      await db.client.close();
+    }
+  }
 });
 
 export default router;
