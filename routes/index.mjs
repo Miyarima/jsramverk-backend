@@ -5,46 +5,30 @@ var router = express.Router();
 
 let db;
 
-// const doc = {
-//     name: body.name,
-//     html: body.html,
-// };
+const handleError = (res, e) => {
+  res.status(500).json({
+    errors: {
+      status: 500,
+      source: "/",
+      title: "Database error",
+      detail: e.message,
+    },
+  });
+};
 
-// const result = await db.collection.insertOne(doc);
-
-// if (result.result.ok) {
-//     return res.status(201).json({ data: result.ops });
-// }
-
-// const ObjectId = require('mongodb').ObjectId;
-
-// const filter = { _id: ObjectId(body["_id"]) };
-// const updateDocument = {
-//     name: body.name,
-//     html: body.html,
-// };
-
-router.get("/user", async (req, res) => {
+// Returns all documents within the collection
+router.get("/", async (req, res) => {
   try {
     const { collection } = await database.getDb();
-    const keyObject = await collection.findOne({ name: "John Doe" });
+    const documents = await collection.find().toArray();
 
-    console.log(keyObject);
-
-    if (keyObject) {
-      res.status(200).json({ data: keyObject });
+    if (documents) {
+      res.status(200).json({ data: documents });
     } else {
-      res.status(404).json({ message: "User not found" });
+      res.status(404).json({ message: "No ducuments found" });
     }
   } catch (e) {
-    res.status(500).json({
-      errors: {
-        status: 500,
-        source: "/",
-        title: "Database error",
-        detail: e.message,
-      },
-    });
+    handleError(res, e);
   } finally {
     if (db && db.client) {
       await db.client.close();
@@ -52,14 +36,36 @@ router.get("/user", async (req, res) => {
   }
 });
 
-router.post("/user", async (req, res) => {
+// Returns the document with the provided Id
+router.get("/:id", async (req, res) => {
+  try {
+    const { collection } = await database.getDb();
+    const filter = { _id: new ObjectId(req.params.id) };
+    const keyObject = await collection.findOne(filter);
+
+    if (keyObject) {
+      res.status(200).json({ data: keyObject });
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
+  } catch (e) {
+    handleError(res, e);
+  } finally {
+    if (db && db.client) {
+      await db.client.close();
+    }
+  }
+});
+
+// Creates a document with the provided title and content
+router.post("/", async (req, res) => {
   try {
     const { collection } = await database.getDb();
 
     collection.insertOne({
-      name: "John Doe",
-      age: 30,
-      email: "johndoe@example.com",
+      title: req.body.title,
+      content: req.body.content,
+      created_at: new Date(),
     });
 
     res.status(201).json({
@@ -68,14 +74,7 @@ router.post("/user", async (req, res) => {
       },
     });
   } catch (e) {
-    res.status(500).json({
-      errors: {
-        status: 500,
-        source: "/",
-        title: "Database error",
-        detail: e.message,
-      },
-    });
+    handleError(res, e);
   } finally {
     if (db && db.client) {
       await db.client.close();
@@ -83,25 +82,19 @@ router.post("/user", async (req, res) => {
   }
 });
 
-router.put("/user", async (req, res) => {
+// Updates the document with the given Id
+router.put("/", async (req, res) => {
   try {
     const { collection } = await database.getDb();
 
     const result = await collection.updateOne(
-      { name: "John Doe" },
-      { $set: { age: 45 } }
+      { _id: new ObjectId(req.body.id) },
+      { $set: { title: req.body.title, content: req.body.content } }
     );
 
     res.status(204).send(result);
   } catch (e) {
-    res.status(500).json({
-      errors: {
-        status: 500,
-        source: "/",
-        title: "Database error",
-        detail: e.message,
-      },
-    });
+    handleError(res, e);
   } finally {
     if (db && db.client) {
       await db.client.close();
@@ -109,27 +102,24 @@ router.put("/user", async (req, res) => {
   }
 });
 
-router.delete("/user", async (req, res) => {
-  try {
-    const { collection } = await database.getDb();
+// ==================================
+// If delete is needed in the future
+// ==================================
 
-    const result = await collection.deleteOne({ name: "John Doe" });
+// router.delete("/", async (req, res) => {
+//   try {
+//     const { collection } = await database.getDb();
 
-    res.status(204).send(result);
-  } catch (e) {
-    res.status(500).json({
-      errors: {
-        status: 500,
-        source: "/",
-        title: "Database error",
-        detail: e.message,
-      },
-    });
-  } finally {
-    if (db && db.client) {
-      await db.client.close();
-    }
-  }
-});
+//     const result = await collection.deleteOne({ name: "John Doe" });
+
+//     res.status(204).send(result);
+//   } catch (e) {
+//     handleError(res, e);
+//   } finally {
+//     if (db && db.client) {
+//       await db.client.close();
+//     }
+//   }
+// });
 
 export default router;
