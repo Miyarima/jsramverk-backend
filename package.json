@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon app.mjs",
+    "start": "node app.mjs",
+    "nodemon": "nodemon app.mjs",
     "production": "NODE_ENV='production' node app.js"
   },
   "author": "",

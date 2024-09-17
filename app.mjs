@@ -1,4 +1,4 @@
-import express from "express";
+import express, { json } from "express";
 // import bodyParser from "body-parser";
 import cors from "cors";
 import morgan from "morgan";
@@ -7,7 +7,7 @@ const app = express();
 const port = process.env.PORT || 1337;
 
 import index from "./routes/index.mjs";
-import greetings from "./routes/hello.mjs";
+// import greetings from "./routes/hello.mjs";
 
 // app.use(bodyParser.json());
 // app.use(bodyParser.urlencoded({ extended: true }));
@@ -25,8 +25,20 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use("/", index);
-app.use("/hello", greetings);
+app.use("/docs", index);
+// app.use("/hello", greetings);
+
+app.get("/", async (req, res) => {
+  let routes = {
+    routes: {
+      This: "/",
+      "All documents": "/docs",
+      "Create document": "/docs/create",
+      "Update document": "/docs/update",
+    },
+  };
+  res.json(routes);
+});
 
 app.use((req, res, next) => {
   var err = new Error("Not Found");

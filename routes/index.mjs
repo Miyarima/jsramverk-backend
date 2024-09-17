@@ -58,7 +58,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Creates a document with the provided title and content
-router.post("/", async (req, res) => {
+router.post("/create", async (req, res) => {
   try {
     const { collection } = await database.getDb();
 
@@ -83,7 +83,7 @@ router.post("/", async (req, res) => {
 });
 
 // Updates the document with the given Id
-router.put("/", async (req, res) => {
+router.put("/update", async (req, res) => {
   try {
     const { collection } = await database.getDb();
 
