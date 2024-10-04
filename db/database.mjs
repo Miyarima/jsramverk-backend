@@ -16,6 +16,7 @@ const database = {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
+
     const db = await client.db();
     const collection = await db.collection(collectionName);
 

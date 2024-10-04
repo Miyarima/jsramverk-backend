@@ -13,9 +13,28 @@ import index from "./routes/index.mjs";
 
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:3000",
+    // origin: ["http://localhost:3000", "https://www.student.bth.se/"],
+    origin: "*",
     methods: ["GET", "POST"],
   },
+});
+
+io.on("connection", (socket) => {
+  console.log("New client connected:", socket.id);
+
+  socket.on("create", function (room) {
+    socket.join(room);
+    console.log("Joined the room:", room);
+  });
+
+  socket.on("update", (data) => {
+    // console.log("Received:", data);
+    socket.broadcast.emit("serverUpdate", data);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected:", socket.id);
+  });
 });
 
 app.use(express.json());
@@ -24,10 +43,6 @@ app.use(cors());
 if (process.env.NODE_ENV !== "test") {
   app.use(morgan("combined"));
 }
-
-io.sockets.on("connection", function (socket) {
-  console.log(socket.id);
-});
 
 app.use((req, res, next) => {
   console.log(req.method);
@@ -72,4 +87,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(port, () => console.log(`Example API listening on port ${port}!`));
+httpServer.listen(port, () =>
+  console.log(`Example API listening on port ${port}!`)
+);
