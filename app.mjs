@@ -1,16 +1,22 @@
 import express, { json } from "express";
-// import bodyParser from "body-parser";
 import cors from "cors";
 import morgan from "morgan";
+import { createServer } from "http";
+import { Server } from "socket.io";
 
 const app = express();
+const httpServer = createServer(app);
+
 const port = process.env.PORT || 1337;
 
 import index from "./routes/index.mjs";
-// import greetings from "./routes/hello.mjs";
 
-// app.use(bodyParser.json());
-// app.use(bodyParser.urlencoded({ extended: true }));
+const io = new Server(httpServer, {
+  cors: {
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST"],
+  },
+});
 
 app.use(express.json());
 app.use(cors());
@@ -18,6 +24,10 @@ app.use(cors());
 if (process.env.NODE_ENV !== "test") {
   app.use(morgan("combined"));
 }
+
+io.sockets.on("connection", function (socket) {
+  console.log(socket.id);
+});
 
 app.use((req, res, next) => {
   console.log(req.method);
