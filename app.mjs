@@ -1,16 +1,58 @@
 import express, { json } from "express";
-// import bodyParser from "body-parser";
 import cors from "cors";
 import morgan from "morgan";
+import { createServer } from "http";
+import { Server } from "socket.io";
+import roomState from "./helpers/roomState.mjs";
 
 const app = express();
+const httpServer = createServer(app);
+
 const port = process.env.PORT || 1337;
 
 import index from "./routes/index.mjs";
-// import greetings from "./routes/hello.mjs";
 
-// app.use(bodyParser.json());
-// app.use(bodyParser.urlencoded({ extended: true }));
+const io = new Server(httpServer, {
+  cors: {
+    // origin: ["http://localhost:3000", "https://www.student.bth.se/"],
+    origin: "*",
+    methods: ["GET", "POST"],
+  },
+});
+
+let timeout;
+
+io.on("connection", (socket) => {
+  console.log("New client connected:", socket.id);
+
+  socket.on("create", async function (room) {
+    socket.join(room);
+
+    socket.currentRoom = room;
+    console.log("Joined the room:", room);
+
+    if (socket.rooms.has(room)) {
+      const data = await roomState.getRoomState(room);
+      if (data) {
+        socket.emit("socketJoin", data);
+      }
+    }
+  });
+
+  socket.on("update", (data) => {
+    socket.to(socket.currentRoom).emit("serverUpdate", data);
+
+    clearTimeout(timeout);
+
+    timeout = setTimeout(function () {
+      roomState.updateRoomState(socket.currentRoom, data);
+    }, 2000);
+  });
+
+  socket.on("disconnect", async () => {
+    console.log("Client disconnected:", socket.id);
+  });
+});
 
 app.use(express.json());
 app.use(cors());
@@ -62,4 +104,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(port, () => console.log(`Example API listening on port ${port}!`));
+httpServer.listen(port, () =>
+  console.log(`Example API listening on port ${port}!`)
+);

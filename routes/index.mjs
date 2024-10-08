@@ -3,8 +3,6 @@ import database from "../db/database.mjs";
 import { ObjectId } from "mongodb";
 var router = express.Router();
 
-let db;
-
 const handleError = (res, e) => {
   res.status(500).json({
     errors: {
@@ -18,10 +16,10 @@ const handleError = (res, e) => {
 
 // Returns all documents within the collection
 router.get("/", async (req, res) => {
+  let db;
   try {
-    const { collection } = await database.getDb();
-    const documents = await collection.find().toArray();
-
+    db = await database.getDb("docs");
+    const documents = await db.collection.find().toArray();
     if (documents) {
       res.status(200).json({ data: documents });
     } else {
@@ -30,18 +28,17 @@ router.get("/", async (req, res) => {
   } catch (e) {
     handleError(res, e);
   } finally {
-    if (db && db.client) {
-      await db.client.close();
-    }
+    await db.client.close();
   }
 });
 
 // Returns the document with the provided Id
 router.get("/:id", async (req, res) => {
+  let db;
   try {
-    const { collection } = await database.getDb();
+    db = await database.getDb("docs");
     const filter = { _id: new ObjectId(req.params.id) };
-    const keyObject = await collection.findOne(filter);
+    const keyObject = await db.collection.findOne(filter);
 
     if (keyObject) {
       res.status(200).json({ data: keyObject });
@@ -51,18 +48,17 @@ router.get("/:id", async (req, res) => {
   } catch (e) {
     handleError(res, e);
   } finally {
-    if (db && db.client) {
-      await db.client.close();
-    }
+    await db.client.close();
   }
 });
 
 // Creates a document with the provided title and content
 router.post("/create", async (req, res) => {
+  let db;
   try {
-    const { collection } = await database.getDb();
+    db = await database.getDb("docs");
 
-    collection.insertOne({
+    await db.collection.insertOne({
       title: req.body.title,
       content: req.body.content,
       created_at: new Date(),
@@ -76,18 +72,17 @@ router.post("/create", async (req, res) => {
   } catch (e) {
     handleError(res, e);
   } finally {
-    if (db && db.client) {
-      await db.client.close();
-    }
+    await db.client.close();
   }
 });
 
 // Updates the document with the given Id
 router.put("/update", async (req, res) => {
+  let db;
   try {
-    const { collection } = await database.getDb();
+    db = await database.getDb("docs");
 
-    const result = await collection.updateOne(
+    const result = await db.collection.updateOne(
       { _id: new ObjectId(req.body.id) },
       { $set: { title: req.body.title, content: req.body.content } }
     );
@@ -96,9 +91,7 @@ router.put("/update", async (req, res) => {
   } catch (e) {
     handleError(res, e);
   } finally {
-    if (db && db.client) {
-      await db.client.close();
-    }
+    await db.client.close();
   }
 });
 
