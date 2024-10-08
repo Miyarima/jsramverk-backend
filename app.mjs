@@ -3,6 +3,7 @@ import cors from "cors";
 import morgan from "morgan";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import roomState from "./helpers/roomState.mjs";
 
 const app = express();
 const httpServer = createServer(app);
@@ -19,20 +20,36 @@ const io = new Server(httpServer, {
   },
 });
 
+let timeout;
+
 io.on("connection", (socket) => {
   console.log("New client connected:", socket.id);
 
-  socket.on("create", function (room) {
+  socket.on("create", async function (room) {
     socket.join(room);
+
+    socket.currentRoom = room;
     console.log("Joined the room:", room);
+
+    if (socket.rooms.has(room)) {
+      const data = await roomState.getRoomState(room);
+      if (data) {
+        socket.emit("socketJoin", data);
+      }
+    }
   });
 
   socket.on("update", (data) => {
-    // console.log("Received:", data);
-    socket.broadcast.emit("serverUpdate", data);
+    socket.to(socket.currentRoom).emit("serverUpdate", data);
+
+    clearTimeout(timeout);
+
+    timeout = setTimeout(function () {
+      roomState.updateRoomState(socket.currentRoom, data);
+    }, 2000);
   });
 
-  socket.on("disconnect", () => {
+  socket.on("disconnect", async () => {
     console.log("Client disconnected:", socket.id);
   });
 });
