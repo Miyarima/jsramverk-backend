@@ -4,6 +4,7 @@ import morgan from "morgan";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import roomState from "./helpers/roomState.mjs";
+import comments from "./helpers/comments.mjs";
 
 const app = express();
 const httpServer = createServer(app);
@@ -31,6 +32,10 @@ io.on("connection", (socket) => {
     socket.currentRoom = room;
     console.log("Joined the room:", room);
 
+    const docComments = await comments.getComments(socket.currentRoom);
+
+    socket.emit("newComment", docComments);
+
     if (socket.rooms.has(room)) {
       const data = await roomState.getRoomState(room);
       if (data) {
@@ -47,6 +52,17 @@ io.on("connection", (socket) => {
     timeout = setTimeout(function () {
       roomState.updateRoomState(socket.currentRoom, data);
     }, 2000);
+  });
+
+  socket.on("comment", (data) => {
+    comments.addComment(
+      socket.currentRoom,
+      data.comment,
+      data.caretPosition.caret,
+      data.caretPosition.line
+    );
+
+    socket.to(socket.currentRoom).emit("newComment", data);
   });
 
   socket.on("disconnect", async () => {
