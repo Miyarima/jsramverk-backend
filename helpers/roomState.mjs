@@ -34,6 +34,13 @@ const roomState = {
 
     return currentState;
   },
+  clearRoomState: async (roomId) => {
+    const db = await database.getDb(collectionName);
+
+    await db.collection.deleteOne({ roomId: roomId });
+
+    await db.client.close();
+  },
 };
 
 export default roomState;
