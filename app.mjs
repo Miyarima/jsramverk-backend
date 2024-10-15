@@ -67,6 +67,10 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", async () => {
     console.log("Client disconnected:", socket.id);
+    const users = io.sockets.adapter.rooms.get(socket.currentRoom);
+    if (users === undefined) {
+      roomState.clearRoomState(socket.currentRoom);
+    }
   });
 });
 
