@@ -5,6 +5,9 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import roomState from "./helpers/roomState.mjs";
 import comments from "./helpers/comments.mjs";
+import database from "./db/database.mjs";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 const app = express();
 const httpServer = createServer(app);
@@ -20,6 +23,74 @@ const io = new Server(httpServer, {
     methods: ["GET", "POST"],
   },
 });
+
+
+
+app.use(express.json());
+app.use(cors());
+
+if (process.env.NODE_ENV !== "test") {
+  app.use(morgan("combined"));
+}
+
+const userModel = {
+  async findUserByEmail(email) {
+    const { collection, client } = await database.getDb("users");
+    const user = await collection.findOne({ email });
+    client.close();
+    return user;
+  },
+
+  async createUser(username, email, password) {
+    const { collection, client } = await database.getDb("users");
+    const newUser = { username, email, password };
+    await collection.insertOne(newUser);
+    client.close();
+  },
+};
+
+
+app.post("/register", async (req, res) => {
+  const { username, email, password } = req.body;
+
+  try {
+    const existingUser = await userModel.findUserByEmail(email);
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await userModel.createUser(username, email, hashedPassword);
+
+    res.status(201).json({ message: "User registered successfully" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const user = await userModel.findUserByEmail(email);
+    if (!user) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid email or password" });
+    }
+
+    const token = jwt.sign({ userId: user._id }, "your_secret_key", { expiresIn: "1h" });
+    res.json({ token, message: "Login successful" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+
 
 let timeout;
 
