@@ -1,8 +1,17 @@
 import express, { json } from "express";
+import { graphqlHTTP } from "express-graphql";
 import cors from "cors";
 import morgan from "morgan";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import {
+  GraphQLObjectType,
+  GraphQLString,
+  GraphQLList,
+  GraphQLFloat,
+  GraphQLNonNull,
+  GraphQLSchema,
+} from "graphql";
 import roomState from "./helpers/roomState.mjs";
 import comments from "./helpers/comments.mjs";
 import database from "./db/database.mjs";
@@ -10,13 +19,19 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import authRoutes from "./routes/auth.mjs"; // not yet
 import authMiddleware from "./middleware/authMiddleware.mjs";
+import index from "./routes/index.mjs";
+import RootQueryType from "./types/Root.mjs";
+import RootMutationType from "./types/RootMutation.mjs";
 
 const app = express();
 const httpServer = createServer(app);
 
 const port = process.env.PORT || 1337;
 
-import index from "./routes/index.mjs";
+const schema = new GraphQLSchema({
+  query: RootQueryType,
+  mutation: RootMutationType,
+});
 
 const io = new Server(httpServer, {
   cors: {
@@ -146,6 +161,10 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", async () => {
     console.log("Client disconnected:", socket.id);
+    const users = io.sockets.adapter.rooms.get(socket.currentRoom);
+    if (users === undefined) {
+      roomState.clearRoomState(socket.currentRoom);
+    }
   });
 });
 
@@ -163,7 +182,13 @@ app.use((req, res, next) => {
 });
 
 app.use("/docs", index);
-// app.use("/hello", greetings);
+app.use(
+  "/graphql",
+  graphqlHTTP({
+    schema: schema,
+    graphiql: true,
+  })
+);
 
 app.get("/", async (req, res) => {
   let routes = {
