@@ -8,6 +8,8 @@ import comments from "./helpers/comments.mjs";
 import database from "./db/database.mjs";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import authRoutes from "./routes/auth.mjs"; // not yet
+import authMiddleware from "./middleware/authMiddleware.mjs";
 
 const app = express();
 const httpServer = createServer(app);
@@ -90,6 +92,12 @@ app.post("/login", async (req, res) => {
 });
 
 
+app.use("/auth", authRoutes);
+
+
+app.get("/protected", authMiddleware, (req, res) => {
+  res.send("This is a protected route");
+});
 
 
 let timeout;
